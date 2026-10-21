@@ -1,0 +1,13 @@
+1.用数据库来存 后端内存 与模型的聊天记录 RAG 要存 文档 向量 用户信息
+2.SQLite Python 自带 整个数据库就是一个文件 语法与主流数据库基本一样
+3.四个核心概念
+表 存一类数据的表格 类似Excel的一个sheet
+行 一条记录 表格里的一行
+字段 数据的一个属性 表格的一列
+SQL 操作数据库的语言
+4.四句最核心的SQL
+插入 INSERT INTO messages (...) VALUES (...)
+查询 SELECT * FROM messages WHERE ...
+修改 UPDATE messages SET ... WHERE ...
+删除 DELETE FROM messages WHERE ...
+创建表 CREATE TABLE IF NOT EXISTS messages (...)

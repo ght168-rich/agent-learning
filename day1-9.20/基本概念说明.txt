@@ -1,0 +1,47 @@
+1.一个网站/APP分成两半
+前端(客户端) 发请求 展示结果
+后端(服务端) 接收请求 处理逻辑 返回结果
+2.请求和响应
+Request对象 请求 客户端->后端 三部分组成
+(1) 请求行 方法 + 路径 + HTTP版本 如 POST /chat HTTP/1.1
+(2) 请求头(Headers) 这次请求的元信息
+Content-Type: application/json 告诉服务器我发的请求体是JSON格式
+Authorization: xxx 访问者身份
+(3) 请求体(Body) 真正要传的数据 JSON字典
+Response对象 响应 后端->客户端 两部分组成
+(1) 状态行 HTTP版本 + 状态码 + 原因短语 如 HTTP/1.1 200 OK
+(2) 响应头(Headers) 服务器给的元信息
+Content-Type: application/json 告诉客户端我返回的响应体是JSON格式
+Content-Length: 1052 响应体有 1052 个字节
+(3) 响应体(Body) 真正的数据
+*** JSON 就是键值对文本 键必须用""
+3.三个工具的分工
+FastAPI Web框架 写接口 做校验 自动生成文档
+uvicorn ASGI服务器 把 FastAPI 程序跑起来 监听窗口
+Pydantic 数据校验 定义请求和响应的格式
+写 FastAPI 代码->uvicorn 运行->Pydantic 负责数据合法性
+4.路由
+路径+方法 和 执行函数 之间的映射关系
+路径 网址 装饰器参数里存的 URL 网址
+方法 装饰器语句中说明的 GET 或 POST 等方法
+执行函数 被装饰器装饰的函数
+5.前端请求 -> 后端响应 的通用流程
+前端发 请求 --->
+uvicorn 收到请求 它是服务器 负责监听其负责的端口 --->
+uvicorn 把请求交给 FastAPI 应用 --->
+FastAPI 根据路由找到对应的函数 --->
+FastAPI 调用对应的函数 此时调用者是 FastAPI --->
+函数执行完 把结果 return 给 FastAPI --->
+Pydantic 把结果转化成 JSON --->
+FastAPI 把 JSON 交给 uvicorn --->
+uvicorn 把响应发回前端
+6.URL 的组成
+例 https://api.example.com:443/v1/chat?session_id=abc&debug=1
+https:// 协议 用什么协议通信
+api.example.com 主机 找哪台服务器
+:443 端口 找服务器上的哪个门
+/v1/chat 路径 通过路由匹配的路径
+?session_id=abc&debug=1 查询参数 ? 开始 多个用 & 连接
+7.接口
+两个进程或两个机器之间的消息传递 依靠网络 数据格式是JSON
+三要素 地址 方法(POST/GET) 数据格式(请求和响应)

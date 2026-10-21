@@ -1,0 +1,12 @@
+[
+  {"question": "什么是RAG？", "keywords": ["RAG", "检索增强"]},
+  {"question": "RAG的核心思想是什么？", "keywords": ["先检索", "再生成"]},
+  {"question": "RAG系统分为哪两个阶段？", "keywords": ["建库阶段", "问答阶段"]},
+  {"question": "大模型训练完成后知识有什么问题？", "keywords": ["知识", "固定"]},
+  {"question": "大模型为什么会产生幻觉？", "keywords": ["幻觉", "编造"]},
+  {"question": "建库阶段需要做什么？", "keywords": ["建库", "文档"]},
+  {"question": "问答阶段的流程是什么？", "keywords": ["问答", "检索"]},
+  {"question": "RAG能解决知识截止日期的问题吗？", "keywords": ["截止日期", "知识"]},
+  {"question": "RAG回答有什么好处？", "keywords": ["来源", "依据"]},
+  {"question": "为什么需要外部知识库？", "keywords": ["外部", "知识库"]}
+]

@@ -1,0 +1,6 @@
+Ollama 是一个让大模型在自己电脑跑的工具 gpt ds 都是在服务器上跑的
+Ollama 装好后会在后台跑一个本地服务 http://127.0.0.1:11434
+三个接口
+对话 POST /api/chat
+单次文本生成 POST /api/generate
+列出本机有哪些模型 GET /api/tags

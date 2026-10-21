@@ -1,0 +1,26 @@
+1. 流式输出解决什么问题？（提示：感知延迟 vs 总延迟）
+降低首字延迟 TTFT 从而降低感知延迟
+2. TTFT 是什么？为什么流式能降低它？
+TTFT 是首字延迟 也就是输出第一个字需要的时间
+流式输出是收到一部分信息后就开始输出 而不是收到全部才输出 所以更快
+3. Ollama 流式返回的格式是什么？一次返回什么内容？
+返回 NDJSON(一行一个JSON) 每次只给新增的一小段文字
+如 content 是增量(这一小段新增的文字) "done" 表示是否结束
+{"model":"qwen2.5:1.5b","message":{"role":"assistant","content":"大"},"done":false}
+{"model":"qwen2.5:1.5b","message":{"role":"assistant","content":"模"},"done":false}
+{"model":"qwen2.5:1.5b","message":{"role":"assistant","content":"型"},"done":false}
+{"model":"qwen2.5:1.5b","message":{"role":"assistant","content":""},"done":true}
+4. 非流式改成流式，代码上有哪 5 个改动点？
+(1)请求参数 stream False->True
+(2)发送方式 http.post()->httpx.stream() 要配上 with
+(3)接收方式 resp.json()一次全拿->for line in resp.iter_lines() + json.loads(line)
+(4)输出方式 攒完再返回->yield(给调用方) / print(piece, end="", flush=True)(给控制台)
+(5)TTFT的计算方式 完全输出后停止计时->输出第一个非空 piece 后停止计时
+5. SSE 的标准消息格式是什么？
+data 内容 \n\n
+复习效果检验
+① with httpx.____stream(...)        → 用哪个方法？
+② for line in resp.____iter_lines()()     → 用哪个方法逐行读？
+③ data = ____json.loads(line)(line)           → 怎么把一行解析成对象？
+④ ttft = ____time.time() - start 此时是第一个非空 piece 的输出时间 → 怎么算首字时间？
+⑤ print(piece, ____)end="",flush=True          → 两个参数（不换行 + 立即刷新）

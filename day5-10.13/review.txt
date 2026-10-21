@@ -1,0 +1,27 @@
+1.FastAPI 定义 POST 接口的关键 3 行？
+正确骨架顺序
+导包->建app->定义请求/响应模型->写装饰器和路径->定义函数并return
+(1) 先导包 两个 FastAPI 和 BaseModel
+from fasatapi import FastAPI
+from pydantic import BaseModel
+(2) 建 app
+app = FastAPI()
+(3) 定义请求/响应模型 带自动校验和序列化功能的结构体
+class ChatRequest(BaseModel):
+    messaage: str
+(4) 装饰器写路径
+@app.post("/chat")
+(5) 定义函数并 return
+assync def chat(req: ChatQuest):
+    return {"reply": "收到" + req.message}
+2.BaseModel 是干什么的？
+定义请求响应模型 并自动校验
+3.async/await 解决什么问题？
+解决等待 I/O 时线程被占住的问题
+线程是干活的最小单位 一个程序(进程)可以开多个线程 让它们并行干活
+I/O 线程负责程序与外部的数据交互 如发送请求到模型并收到回复
+其中大部分时间再等模型输出 采用异步可以让线程在这段等待时间执行别的任务
+4.Ollama /api/chat 请求体需要哪几个字段？
+model messages stream
+5.流式输出为什么能降低首字延迟？
+因为不是等模型把完整的回答输出完后再给到用户 只要产生输出就给到用户
