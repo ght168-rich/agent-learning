@@ -1,0 +1,4 @@
+cd /d/py/agent
+git add .
+git commit -m "今天改了什么"
+git push
