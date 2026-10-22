@@ -194,6 +194,7 @@ TOOLS = [
 
 async def chat_with_tools(messages):
     async with httpx.AsyncClient(timeout=300) as client:
+        # resp 是模型返回的对象
         resp = await client.post(
             OLLAMA_URL + "/api/chat",
             json={
@@ -207,7 +208,7 @@ async def chat_with_tools(messages):
         resp.raise_for_status()
         return resp.json().get("message", {})
 
-
+# 工具执行函数 args 是工具的参数
 async def execute_tool(name, args):
     if name == "get_current_time":
         return tool_get_current_time()
@@ -224,12 +225,27 @@ def plan_required_tools(question: str):
     q = question.lower()
 
     # 时间类
+    # 检测问题中的关键词 出现提问时间的词就把时间工具加入计划
     if any(k in q for k in ["几点", "时间", "日期", "今天"]):
+
         plan.append(("get_current_time", {}))
 
-    # 数学表达式（找带运算符的那一段）
+    # 数学表达式 找带运算符的那一段
+    """
+    re.findall(规则, 文本) 在文本中找出所有符合规则的片段 返回一个列表
+    r"..." 表示 raw string(原始字符串) 让反斜杠 \ 不被 python 提前转义
+    [...] 叫字符集合 表示这里面的任意一个字符
+    即第一段 [0-9] 表示必须是 0 到 9 中的一个数字 所以匹配的第一个字符必须是数字
+    第二段 [0-9+\-*/().\s]* * 是量词 表示前面的字符集合可以出现0次或多次
+    \s 表示空白字符 如 空格 换行 Tab
+    整个规则就表示 从一个数字开始 后面跟着任意多个数字或运算符号或小括号或小数点的片段
+    """
+    # 遍历 re.findall() 找到的列表
     for m in re.findall(r"[0-9][0-9+\-*/().\s]*", question):
         expr = m.strip()
+        """
+        re.search(规则, 文本) 如果文本中含有任意一个规则里的字符 就返回真 
+        """
         if re.search(r"[+\-*/]", expr):
             plan.append(("calculate", {"expression": expr}))
             break
@@ -299,8 +315,9 @@ async def stream_ollama(prompt):
     yield 'data: {"done": true}\n\n'
 
 
+# 模型不调用工具时的备用规则
 def route_question(question: str):
-    """模型没调工具时，按关键词/正则选择工具"""
+    """模型没调工具时 按关键词/正则选择工具 并没有执行工具"""
     if any(k in question for k in ["几点", "时间", "日期", "今天"]):
         return "get_current_time", {}
 
@@ -312,11 +329,13 @@ def route_question(question: str):
 
 
 async def run_agent(question, max_steps=3):
+    # 得到解决用户问题所需的工具列表
     plan = plan_required_tools(question)
     trace = []
 
-    # ===== 多意图：先把所有必需工具执行完，再让模型统一总结 =====
+    # 所需工具数量大于 1 识别为多意图 先把所有必需工具执行完 再让模型统一总结
     if len(plan) > 1:
+        # 存字典的列表 给模型看
         messages = [
             {"role": "system", "content": (
                 "你是助手。必须先使用所有工具返回的结果；"
@@ -347,7 +366,7 @@ async def run_agent(question, max_steps=3):
         final = await chat_with_tools(messages)
         return final.get("content", ""), trace
 
-    # ===== 单意图：保留你原来的模型决策循环 =====
+    # 单意图 保留你原来的模型决策循环
     messages = [
         {"role": "system", "content": "你是一个会使用工具的助手。需要工具时调用工具，否则直接回答。"},
         {"role": "user", "content": question},
@@ -355,6 +374,8 @@ async def run_agent(question, max_steps=3):
 
     for step in range(1, max_steps + 1):
         msg = await chat_with_tools(messages)
+        # None or [] -> []
+        # 键不存在 .get() 会返回 None
         calls = msg.get("tool_calls") or []
 
         if not calls and step == 1:
@@ -368,6 +389,29 @@ async def run_agent(question, max_steps=3):
 
         messages.append(msg)
 
+        # 为后面轮次准备的
+        """
+        两种情况
+        A
+        第 1 轮 模型返回 tool_calls(非空)
+        → 执行工具
+        → 把结果发回模型
+
+        第 2 轮 模型看到结果 觉得够了 不再调工具
+        → tool_calls 为空
+        → 命中 if not calls
+        → 返回最终回答
+        B
+        第 1 轮 模型没调工具
+        → route_question 强制构造 tool_calls(非空)
+        → 执行工具
+        → 把结果发回模型
+
+        第 2 轮 模型基于工具结果给出回答，不再调工具
+        → tool_calls 为空
+        → 命中 if not calls
+        → 返回最终回答
+        """
         if not calls:
             return msg.get("content", ""), trace
 
@@ -471,3 +515,23 @@ if __name__ == "__main__":
     print("时间工具：", tool_get_current_time())
     print("计算器：", tool_calculate("123 * 45 + 6"))
     print("非法表达式：", tool_calculate("__import__('os').system('dir')"))
+"""
+agent 工作流程
+/agent接口 按请求模型 AgentRequest 的格式得到了用户的问题->
+/agent接口把问题传给接口函数 agent->
+函数 agent 把问题传给函数 run_agent 并执行 函数接收返回的结果 这个结果是要给用户的->
+run_agent 把问题交给工具规划函数 plan_required_tools->
+plan_required_tools 去解析问题并返回所需工具的列表给 run_agent->
+run_agent 识别单/多意图 并按不同逻辑执行->
+(1) 多意图 先构建消息列表 遍历 plan 调用 execute_tool 执行对应的工具函数 并把相关信息加到 messages trace 列表里->\
+再把 messages 通过函数 chat_with_tools 给到大模型 大模型总结后返回问题答案和 trace
+(2) 单意图 先构建 messages 消息列表 调用 chat_with_tools 把消息列表发给模型并拿到返回的 msg
+如果这是第一轮且 msg 中没有 tool_calls 就调用 route_question 按规则得到工具名和参数
+由程序构造一条 content 为空 tool_calls 填入该工具的 assistant 消息并用它替换 msg
+若第一轮已有 tool_calls 则跳过这一步 随后把 msg 追加进 messages
+如果此时仍没有 tool_calls 就返回 msg.content 作为最终回答并附带 trace
+否则遍历每个 tool_call 解析工具名与参数 调用 execute_tool 执行工具
+把 step 工具名 参数和结果写入 trace 并把工具结果作为 role=tool 的消息追加进 messages
+然后进入下一轮再次调用 chat_with_tools 让模型基于工具结果继续决策 循环最多执行 max_steps 次
+仍未得到最终回答就返回“达到最大步数，未能完成”和 trace
+"""
